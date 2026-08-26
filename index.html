@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <title>ระบบรายรับ–รายจ่าย</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FINANCE DASHBOARD</p>
+      <h1>ระบบรายรับ–รายจ่าย</h1>
+      <p class="subtitle">บันทึกยอดขาย ค่าใช้จ่าย และดูยอดคงเหลือได้ในหน้าเดียว</p>
+    </div>
+    <div class="top-actions">
+      <button id="exportCsvBtn" class="btn secondary">ส่งออก CSV</button>
+      <button id="backupBtn" class="btn secondary">สำรองข้อมูล</button>
+      <label class="btn secondary file-btn">นำเข้าข้อมูล
+        <input id="restoreInput" type="file" accept=".json,application/json" hidden />
+      </label>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="summary-grid">
+      <article class="summary-card income">
+        <span>รายรับ</span>
+        <strong id="totalIncome">฿0.00</strong>
+      </article>
+      <article class="summary-card expense">
+        <span>รายจ่าย</span>
+        <strong id="totalExpense">฿0.00</strong>
+      </article>
+      <article class="summary-card balance">
+        <span>คงเหลือ / กำไรสุทธิ</span>
+        <strong id="netBalance">฿0.00</strong>
+      </article>
+      <article class="summary-card count">
+        <span>จำนวนรายการ</span>
+        <strong id="transactionCount">0</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>เพิ่มรายการ</h2>
+          <p>ข้อมูลจะถูกบันทึกไว้ในเบราว์เซอร์เครื่องนี้</p>
+        </div>
+      </div>
+
+      <form id="transactionForm" class="form-grid">
+        <div class="field">
+          <label for="date">วันที่</label>
+          <input id="date" name="date" type="date" required />
+        </div>
+
+        <div class="field">
+          <label for="type">ประเภท</label>
+          <select id="type" name="type" required>
+            <option value="income">รายรับ</option>
+            <option value="expense">รายจ่าย</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="category">หมวดหมู่</label>
+          <input id="category" name="category" list="categoryList" placeholder="เช่น ยอดขาย / วัตถุดิบ" required />
+          <datalist id="categoryList">
+            <option value="ยอดขาย"></option>
+            <option value="เงินทอน"></option>
+            <option value="วัตถุดิบ"></option>
+            <option value="ค่าแรง"></option>
+            <option value="ค่าเช่า"></option>
+            <option value="ค่าน้ำ"></option>
+            <option value="ค่าไฟ"></option>
+            <option value="ค่าเดินทาง"></option>
+            <option value="การตลาด"></option>
+            <option value="อื่น ๆ"></option>
+          </datalist>
+        </div>
+
+        <div class="field">
+          <label for="branch">สาขา</label>
+          <input id="branch" name="branch" placeholder="เช่น สาขาหลัก" value="สาขาหลัก" required />
+        </div>
+
+        <div class="field wide">
+          <label for="description">รายละเอียด</label>
+          <input id="description" name="description" placeholder="รายละเอียดรายการ" required />
+        </div>
+
+        <div class="field">
+          <label for="amount">จำนวนเงิน (บาท)</label>
+          <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+        </div>
+
+        <div class="field form-actions">
+          <button class="btn primary" type="submit">+ บันทึกรายการ</button>
+          <button class="btn ghost" type="reset">ล้างข้อมูล</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading filters-heading">
+        <div>
+          <h2>รายการทั้งหมด</h2>
+          <p>ค้นหาและกรองรายการเพื่อดูรายงานเฉพาะช่วงที่ต้องการ</p>
+        </div>
+        <button id="clearAllBtn" class="btn danger-outline">ลบข้อมูลทั้งหมด</button>
+      </div>
+
+      <div class="filters">
+        <input id="searchInput" type="search" placeholder="ค้นหารายละเอียด หมวดหมู่ หรือสาขา" />
+        <select id="typeFilter">
+          <option value="all">ทุกประเภท</option>
+          <option value="income">รายรับ</option>
+          <option value="expense">รายจ่าย</option>
+        </select>
+        <input id="monthFilter" type="month" />
+        <button id="resetFiltersBtn" class="btn ghost" type="button">รีเซ็ตตัวกรอง</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>ประเภท</th>
+              <th>หมวดหมู่</th>
+              <th>สาขา</th>
+              <th>รายละเอียด</th>
+              <th class="right">จำนวนเงิน</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="transactionBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">฿</div>
+          <h3>ยังไม่มีรายการ</h3>
+          <p>เริ่มต้นด้วยการเพิ่มรายรับหรือรายจ่ายด้านบน</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel report-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>สรุปตามหมวดหมู่</h2>
+          <p>คำนวณจากรายการที่กำลังแสดงตามตัวกรอง</p>
+        </div>
+      </div>
+      <div id="categoryReport" class="category-report"></div>
+    </section>
+  </main>
+
+  <footer>
+    ระบบรายรับ–รายจ่าย • ใช้งานได้บน GitHub Pages • ข้อมูลเก็บด้วย LocalStorage
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
